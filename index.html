@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Table Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        .table-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a237e;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .table {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            margin: 10px;
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .empty {
+            background: linear-gradient(145deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .occupied {
+            background: linear-gradient(145deg, #f44336, #e53935);
+            color: white;
+        }
+
+        .table:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .table-number {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .table-status {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .admin-link {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: linear-gradient(145deg, #1a237e, #283593);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .admin-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .area-section {
+            margin: 30px 0;
+            padding: 30px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .area-title {
+            color: #1a237e;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #1a237e;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+        }
+
+        .area-title::before {
+            content: '📍';
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .no-tables {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="table-grid">
+        <h1>🏪 Restaurant Table Management</h1>
+        <div id="areaContainer"></div>
+    </div>
+    <a href="admin.html" class="admin-link">⚙️ Admin Panel</a>
+
+    <script>
+        let tables = [];
+
+        function loadTables() {
+            const savedTables = localStorage.getItem('restaurantTables');
+            if (savedTables) {
+                tables = JSON.parse(savedTables);
+            } else {
+                tables = [
+                    ...Array(6).fill(null).map((_, index) => ({
+                        id: index + 1,
+                        status: 'empty',
+                        area: 'First Floor'
+                    })),
+                    ...Array(6).fill(null).map((_, index) => ({
+                        id: index + 7,
+                        status: 'empty',
+                        area: 'Second Floor'
+                    }))
+                ];
+                saveTables();
+            }
+        }
+
+        function saveTables() {
+            localStorage.setItem('restaurantTables', JSON.stringify(tables));
+        }
+
+        function renderTables() {
+            const container = document.getElementById('areaContainer');
+            container.innerHTML = '';
+            
+            const areas = [...new Set(tables.map(table => table.area))].sort();
+            
+            areas.forEach(area => {
+                const areaSection = document.createElement('div');
+                areaSection.className = 'area-section';
+                
+                const areaTitle = document.createElement('h2');
+                areaTitle.className = 'area-title';
+                areaTitle.textContent = area;
+                areaSection.appendChild(areaTitle);
+
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'grid';
+
+                const areaTables = tables.filter(table => table.area === area)
+                    .sort((a, b) => a.id - b.id);
+                
+                if (areaTables.length === 0) {
+                    const noTables = document.createElement('div');
+                    noTables.className = 'no-tables';
+                    noTables.textContent = 'No tables in this area';
+                    gridDiv.appendChild(noTables);
+                } else {
+                    areaTables.forEach(table => {
+                        const tableDiv = document.createElement('div');
+                        tableDiv.className = `table ${table.status}`;
+                        tableDiv.innerHTML = `
+                            <span class="table-number">${table.customName || 'Table ' + table.id}</span>
+                            <span class="table-status">
+                                ${table.status === 'empty' ? 'Available' : 'Occupied'}
+                            </span>
+                        `;
+                        
+                        tableDiv.onclick = () => {
+                            table.status = table.status === 'empty' ? 'occupied' : 'empty';
+                            saveTables();
+                            renderTables();
+                        };
+                        
+                        gridDiv.appendChild(tableDiv);
+                    });
+                }
+
+                areaSection.appendChild(gridDiv);
+                container.appendChild(areaSection);
+            });
+        }
+
+        loadTables();
+        renderTables();
+    </script>
+</body>
+</html> 
